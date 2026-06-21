@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ＡＲＲＯＷ松原店 設定推測レポート</title>
+<style>
+:root{--bg:#0f1419;--card:#1a2027;--card2:#222b34;--line:#2c3742;--fg:#e7edf3;--mut:#8b98a5;
+--accent:#3ea6ff;--hot:#ff4d6d;--warm:#ffb020;--cool:#37506b;--good:#28c08a;}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+font-size:15px;line-height:1.5;padding-bottom:40px}
+header{padding:16px 14px;background:linear-gradient(160deg,#16202b,#0f1419);position:sticky;top:0;z-index:20;border-bottom:1px solid var(--line)}
+h1{font-size:18px;margin:0 0 2px}
+.sub{color:var(--mut);font-size:12px}
+.wrap{padding:12px 12px 0;max-width:760px;margin:0 auto}
+.tabs{display:flex;gap:6px;margin:10px 0}
+.tab{flex:1;text-align:center;padding:9px 4px;background:var(--card);border:1px solid var(--line);
+border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;user-select:none}
+.tab.on{background:var(--accent);color:#04121f;border-color:var(--accent)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px}
+.card h2{font-size:14px;margin:0 0 8px;display:flex;align-items:center;gap:6px}
+.muted{color:var(--mut);font-size:12px}
+select,input{background:var(--card2);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:14px;font-family:inherit}
+select{width:100%}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:7px 6px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left;white-space:normal;min-width:0}
+th{color:var(--mut);font-weight:600;font-size:11px;position:sticky;top:0}
+tbody tr:active{background:var(--card2)}
+.name{font-size:13px;line-height:1.25;word-break:break-word}
+.badge{display:inline-block;padding:1px 6px;border-radius:6px;font-size:11px;font-weight:700;margin-left:4px}
+.b-hot{background:var(--hot);color:#fff}.b-warm{background:var(--warm);color:#3a2600}
+.b-good{background:var(--good);color:#04221a}.b-due{background:#5a4bd0;color:#fff}
+.pill{display:inline-block;min-width:30px;text-align:center;padding:2px 6px;border-radius:6px;font-weight:700;font-size:12px}
+.rank{color:var(--mut);font-variant-numeric:tabular-nums;width:22px}
+.heat{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:6px}
+.cell{border-radius:9px;padding:8px 4px;text-align:center;border:1px solid var(--line)}
+.cell .e{font-size:16px;font-weight:800}
+.cell .v{font-size:11px;opacity:.9}
+.scorebar{height:5px;border-radius:3px;background:var(--accent);margin-top:3px}
+.hint{font-size:12px;color:var(--mut);margin-top:4px}
+.kv{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--line);font-size:13px}
+.kv:last-child{border:0}
+.big{font-size:20px;font-weight:800}
+.foot{color:var(--mut);font-size:11px;text-align:center;padding:18px 12px}
+.posneg{font-variant-numeric:tabular-nums}
+.up{color:var(--good)}.down{color:var(--mut)}
+details{margin-top:8px}summary{cursor:pointer;color:var(--accent);font-size:13px}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="store"></h1>
+  <div class="sub" id="meta"></div>
+</header>
+<div class="wrap">
+  <div class="tabs">
+    <div class="tab on" data-v="month">📅 月別 設定実績</div>
+    <div class="tab" data-v="predict">🔮 次回 予想</div>
+  </div>
+
+  <section id="view-month">
+    <div class="card">
+      <div class="row"><span class="muted">対象月</span><select id="monthSel"></select></div>
+    </div>
+    <div class="card">
+      <h2>🎰 設定が入ってる台（機種別ランキング）</h2>
+      <div class="muted" id="mlegend"></div>
+      <div style="overflow-x:auto"><table id="machTbl"></table></div>
+      <details><summary>表示を増やす</summary><div id="machMore"></div></details>
+    </div>
+    <div class="card">
+      <h2>🔢 末尾別ヒートマップ（プラスになった日数）</h2>
+      <div class="muted">数字＝平均出率／下のバー＝プラス日数の割合。店舗が設定を入れやすい末尾の傾向。</div>
+      <div class="heat" id="endHeat" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <section id="view-predict" style="display:none">
+    <div class="card" style="border-color:#3a5">
+      <h2>📊 予想精度の検証結果（直近90日・リーク無しバックテスト）</h2>
+      <div id="acc"></div>
+      <div class="hint">「改善×1.0」がランダム（まぐれ）と同じ。1.0より大きいほど予想が効いている。
+        検証は <code>python backtest.py ＡＲＲＯＷ松原店</code> で誰でも再現できます。</div>
+    </div>
+    <div class="card">
+      <h2>🏆 高設定が入りやすい主力機種 TOP</h2>
+      <div style="overflow-x:auto"><table id="predMach"></table></div>
+      <div class="hint">過去に <b>濃厚(出率110%+)になった日数</b> が多い順。バックテストで唯一
+        ランダムを明確に上回った指標（濃厚的中 約×1.4）。この店が普段から高設定を撒く主力機種です。</div>
+    </div>
+    <div class="card">
+      <h2>📅 日付の参考情報</h2>
+      <div class="row"><span class="muted">見たい日</span><input type="date" id="dateInp"></div>
+      <div class="hint" id="dateEval"></div>
+      <div class="hint">⚠️ 曜日・日にちの傾向は<b>バックテストでは精度が出ていません</b>（ほぼ×1.0）。
+        参考程度に。狙うなら上の主力機種を軸にしてください。</div>
+    </div>
+    <div class="card">
+      <h2>🔢 末尾の傾向（参考）</h2>
+      <div class="heat" id="predEnd"></div>
+      <div class="hint">⚠️ 末尾予想も精度は出ていません（プラス的中 約×1.0）。末尾はほぼ運次第のため参考表示です。</div>
+    </div>
+    <div class="card">
+      <h2>📈 店舗の癖（記述統計）</h2>
+      <div id="habits"></div>
+    </div>
+  </section>
+</div>
+<div class="foot" id="foot"></div>
+
+<script>
+const DATA = {"slug": "ＡＲＲＯＷ松原店", "store": "ＡＲＲＯＷ松原店", "generated": "2026-06-22 01:52", "n_rows": 3036, "date_range": "2026-04-22 〜 2026-06-19", "th_hot": 110.0, "th_warm": 105.0, "monthly": {"2026-06": {"days": 19, "machines": [{"name": "ToLOVEるダークネス TRANCE ver.8.7", "days": 19, "hot": 7, "warm": 9, "avg_der": 104.3, "max_der": 165.0, "avg_sam": 24, "score": 216.8}, {"name": "スマスロ 攻殻機動隊", "days": 18, "hot": 7, "warm": 8, "avg_der": 101.9, "max_der": 128.3, "avg_sam": 392, "score": 146.0}, {"name": "Lスマスロ北斗の拳", "days": 19, "hot": 6, "warm": 7, "avg_der": 103.4, "max_der": 139.4, "avg_sam": 189, "score": 125.5}, {"name": "スマスロ スーパーブラックジャック", "days": 18, "hot": 5, "warm": 8, "avg_der": 92.9, "max_der": 146.9, "avg_sam": 238, "score": 147.9}, {"name": "スマスロ スーパーリオエース2", "days": 18, "hot": 5, "warm": 6, "avg_der": 101.5, "max_der": 147.1, "avg_sam": 198, "score": 127.8}, {"name": "スマスロヨルムンガンド", "days": 18, "hot": 5, "warm": 6, "avg_der": 98.7, "max_der": 138.8, "avg_sam": -3, "score": 118.0}, {"name": "L 真・一騎当千", "days": 18, "hot": 5, "warm": 5, "avg_der": 93.4, "max_der": 148.0, "avg_sam": 411, "score": 139.3}, {"name": "スマート沖スロ ドラゴンハナハナ～閃光～", "days": 19, "hot": 4, "warm": 7, "avg_der": 98.9, "max_der": 121.5, "avg_sam": 89, "score": 93.6}, {"name": "スマスロモンキーターンV", "days": 19, "hot": 4, "warm": 7, "avg_der": 99.3, "max_der": 117.4, "avg_sam": 235, "score": 84.6}, {"name": "Lパチスロ革命機ヴァルヴレイヴ2", "days": 18, "hot": 4, "warm": 6, "avg_der": 102.4, "max_der": 175.4, "avg_sam": 69, "score": 162.3}, {"name": "スマスロ北斗の拳 転生の章2", "days": 19, "hot": 4, "warm": 6, "avg_der": 101.8, "max_der": 120.5, "avg_sam": 113, "score": 90.2}, {"name": "スマスロ 東京リベンジャーズ", "days": 18, "hot": 4, "warm": 5, "avg_der": 104.3, "max_der": 152.3, "avg_sam": 49, "score": 155.6}, {"name": "Lアズールレーン THE ANIMATION", "days": 18, "hot": 4, "warm": 4, "avg_der": 86.3, "max_der": 134.7, "avg_sam": -406, "score": 92.9}, {"name": "クレアの秘宝伝～はじまりの扉と太陽の石～ボーナストリガーver.", "days": 13, "hot": 4, "warm": 4, "avg_der": 95.8, "max_der": 115.2, "avg_sam": 257, "score": 51.8}, {"name": "スマスロ バイオハザードRE:3", "days": 18, "hot": 3, "warm": 6, "avg_der": 97.6, "max_der": 140.0, "avg_sam": -51, "score": 121.4}, {"name": "A-SLOT+ ディスクアップ ULTRAREMIX", "days": 18, "hot": 3, "warm": 6, "avg_der": 98.7, "max_der": 125.7, "avg_sam": 83, "score": 85.8}, {"name": "虚構推理", "days": 19, "hot": 3, "warm": 5, "avg_der": 98.8, "max_der": 153.6, "avg_sam": -275, "score": 131.5}, {"name": "スマスロ 甲鉄城のカバネリ 海門決戦", "days": 19, "hot": 3, "warm": 5, "avg_der": 99.9, "max_der": 115.1, "avg_sam": 23, "score": 63.6}, {"name": "L聖闘士星矢 海皇覚醒 CUSTOM EDITION", "days": 18, "hot": 3, "warm": 4, "avg_der": 83.1, "max_der": 119.9, "avg_sam": -140, "score": 57.3}, {"name": "スマスロ ゴッドイーター リザレクション", "days": 18, "hot": 3, "warm": 3, "avg_der": 96.2, "max_der": 120.0, "avg_sam": -177, "score": 60.0}, {"name": "L東京喰種", "days": 19, "hot": 2, "warm": 6, "avg_der": 102.0, "max_der": 116.8, "avg_sam": 273, "score": 70.0}, {"name": "スマスロ化物語", "days": 18, "hot": 2, "warm": 6, "avg_der": 94.1, "max_der": 114.1, "avg_sam": -23, "score": 57.9}, {"name": "スマスロ ハナビ", "days": 19, "hot": 2, "warm": 5, "avg_der": 94.0, "max_der": 115.9, "avg_sam": 115, "score": 63.5}, {"name": "Lパチスロうみねこのなく頃に2", "days": 18, "hot": 2, "warm": 5, "avg_der": 95.9, "max_der": 119.3, "avg_sam": -147, "score": 59.9}, {"name": "真打 吉宗", "days": 19, "hot": 2, "warm": 5, "avg_der": 92.1, "max_der": 116.3, "avg_sam": -177, "score": 53.3}, {"name": "スマスロ マギアレコード 魔法少女まどか☆マギカ外伝", "days": 18, "hot": 2, "warm": 3, "avg_der": 93.8, "max_der": 135.4, "avg_sam": 184, "score": 76.4}, {"name": "Lパチスロ炎炎ノ消防隊2", "days": 18, "hot": 2, "warm": 3, "avg_der": 96.5, "max_der": 131.1, "avg_sam": 310, "score": 65.3}, {"name": "スマスロ ビッグドリーム THE GOLDEN PUSHER", "days": 18, "hot": 2, "warm": 2, "avg_der": 77.2, "max_der": 144.1, "avg_sam": -171, "score": 83.0}, {"name": "スマスロバジリスク～甲賀忍法帖～絆2 天膳 BLACK EDITION", "days": 18, "hot": 2, "warm": 2, "avg_der": 86.9, "max_der": 143.2, "avg_sam": -218, "score": 57.5}, {"name": "スマート沖スロ ニューキングハナハナV", "days": 19, "hot": 1, "warm": 4, "avg_der": 94.1, "max_der": 112.4, "avg_sam": 104, "score": 45.4}, {"name": "A‐SLOT+ 異世界かるてっと", "days": 19, "hot": 1, "warm": 3, "avg_der": 94.0, "max_der": 121.6, "avg_sam": -89, "score": 44.4}, {"name": "L無職転生～異世界行ったら本気だす～", "days": 11, "hot": 1, "warm": 3, "avg_der": 92.4, "max_der": 121.7, "avg_sam": -219, "score": 36.4}, {"name": "ネオアイムジャグラーEX", "days": 19, "hot": 1, "warm": 2, "avg_der": 101.5, "max_der": 110.1, "avg_sam": 131, "score": 38.7}, {"name": "ビッグドリーム THE GOLDEN PUSHER", "days": 1, "hot": 1, "warm": 1, "avg_der": 137.5, "max_der": 137.5, "avg_sam": 850, "score": 37.5}, {"name": "スマスロ新鬼武者3", "days": 18, "hot": 1, "warm": 1, "avg_der": 84.8, "max_der": 114.9, "avg_sam": -569, "score": 22.1}, {"name": "バーニングエクスプレス", "days": 7, "hot": 1, "warm": 1, "avg_der": 75.4, "max_der": 119.7, "avg_sam": -444, "score": 21.5}, {"name": "ドッチ", "days": 1, "hot": 1, "warm": 1, "avg_der": 120.1, "max_der": 120.1, "avg_sam": 3352, "score": 20.1}, {"name": "化物語", "days": 1, "hot": 1, "warm": 1, "avg_der": 116.0, "max_der": 116.0, "avg_sam": 144, "score": 16.0}, {"name": "スマスロ ミリオンゴッド-神々の軌跡-", "days": 19, "hot": 1, "warm": 1, "avg_der": 85.4, "max_der": 114.0, "avg_sam": -320, "score": 14.0}, {"name": "無職転生 ～異世界行ったら本気だす～", "days": 1, "hot": 1, "warm": 1, "avg_der": 112.9, "max_der": 112.9, "avg_sam": 693, "score": 12.9}, {"name": "スーパーブラックジャック", "days": 1, "hot": 1, "warm": 1, "avg_der": 112.7, "max_der": 112.7, "avg_sam": 3228, "score": 12.7}, {"name": "ハッピージャグラーＶＩＩＩ", "days": 18, "hot": 0, "warm": 5, "avg_der": 100.8, "max_der": 107.9, "avg_sam": 189, "score": 44.6}, {"name": "ミスタージャグラー", "days": 19, "hot": 0, "warm": 3, "avg_der": 99.6, "max_der": 107.8, "avg_sam": 143, "score": 38.8}, {"name": "マイジャグラーV", "days": 19, "hot": 0, "warm": 3, "avg_der": 100.6, "max_der": 105.5, "avg_sam": 139, "score": 32.6}, {"name": "ファンキージャグラー２ＫＴ", "days": 18, "hot": 0, "warm": 3, "avg_der": 100.9, "max_der": 106.8, "avg_sam": 87, "score": 25.3}, {"name": "ウルトラミラクルジャグラー", "days": 19, "hot": 0, "warm": 2, "avg_der": 99.2, "max_der": 106.6, "avg_sam": 2, "score": 28.6}, {"name": "ジャグラーガールズSS", "days": 18, "hot": 0, "warm": 2, "avg_der": 99.9, "max_der": 108.4, "avg_sam": 27, "score": 27.1}, {"name": "スロット ソードアート・オンラインⅡ", "days": 11, "hot": 0, "warm": 2, "avg_der": 94.0, "max_der": 108.3, "avg_sam": -778, "score": 19.1}, {"name": "ゴーゴージャグラー３", "days": 19, "hot": 0, "warm": 1, "avg_der": 100.2, "max_der": 108.0, "avg_sam": 82, "score": 31.1}, {"name": "アニマルスロット ドッチ", "days": 11, "hot": 0, "warm": 1, "avg_der": 90.6, "max_der": 108.9, "avg_sam": -516, "score": 13.1}, {"name": "L戦国乙女5 業火を穿つ宿焔の双刃", "days": 11, "hot": 0, "warm": 1, "avg_der": 97.5, "max_der": 106.3, "avg_sam": -383, "score": 10.1}, {"name": "ゴッドイーター リザレクション", "days": 1, "hot": 0, "warm": 1, "avg_der": 109.4, "max_der": 109.4, "avg_sam": 731, "score": 9.4}, {"name": "ソードアート・オンラインII", "days": 1, "hot": 0, "warm": 1, "avg_der": 109.1, "max_der": 109.1, "avg_sam": 2151, "score": 9.1}, {"name": "戦国乙女5 業火を穿つ宿焔の双刃", "days": 1, "hot": 0, "warm": 1, "avg_der": 108.2, "max_der": 108.2, "avg_sam": 1974, "score": 8.2}, {"name": "攻殻機動隊", "days": 1, "hot": 0, "warm": 1, "avg_der": 107.8, "max_der": 107.8, "avg_sam": 407, "score": 7.8}, {"name": "ジャグラーガールズ", "days": 1, "hot": 0, "warm": 0, "avg_der": 102.7, "max_der": 102.7, "avg_sam": 290, "score": 2.7}, {"name": "革命機ヴァルヴレイヴ2", "days": 1, "hot": 0, "warm": 0, "avg_der": null, "max_der": null, "avg_sam": 0, "score": 0}, {"name": "スマスロ炎炎ノ消防隊2", "days": 1, "hot": 0, "warm": 0, "avg_der": 98.9, "max_der": 98.9, "avg_sam": -45, "score": 0.0}, {"name": "ファンキージャグラー2", "days": 1, "hot": 0, "warm": 0, "avg_der": 97.2, "max_der": 97.2, "avg_sam": -164, "score": 0.0}, {"name": "スーパーリオエース2", "days": 1, "hot": 0, "warm": 0, "avg_der": 97.2, "max_der": 97.2, "avg_sam": -258, "score": 0.0}, {"name": "ハッピージャグラーVIII", "days": 1, "hot": 0, "warm": 0, "avg_der": 95.9, "max_der": 95.9, "avg_sam": -259, "score": 0.0}, {"name": "ヨルムンガンド", "days": 1, "hot": 0, "warm": 0, "avg_der": 83.0, "max_der": 83.0, "avg_sam": -340, "score": 0.0}, {"name": "バイオハザード RE:3", "days": 1, "hot": 0, "warm": 0, "avg_der": 83.7, "max_der": 83.7, "avg_sam": -463, "score": 0.0}, {"name": "ディスクアップ ULTRAREMIX", "days": 1, "hot": 0, "warm": 0, "avg_der": null, "max_der": null, "avg_sam": 0, "score": 0}, {"name": "マギアレコード 魔法少女まどか☆マギカ外伝", "days": 1, "hot": 0, "warm": 0, "avg_der": null, "max_der": null, "avg_sam": 0, "score": 0}, {"name": "真・一騎当千", "days": 1, "hot": 0, "warm": 0, "avg_der": null, "max_der": null, "avg_sam": 0, "score": 0}, {"name": "聖闘士星矢 海皇覚醒 CUSTOM EDITION", "days": 1, "hot": 0, "warm": 0, "avg_der": 52.4, "max_der": 52.4, "avg_sam": -10, "score": 0.0}, {"name": "うみねこのなく頃に2", "days": 1, "hot": 0, "warm": 0, "avg_der": 77.7, "max_der": 77.7, "avg_sam": -376, "score": 0.0}, {"name": "アズールレーン THE ANIMATION", "days": 1, "hot": 0, "warm": 0, "avg_der": 97.3, "max_der": 97.3, "avg_sam": -388, "score": 0.0}, {"name": "クレアの秘宝伝 ～はじまりの扉と太陽の石～ ボーナストリガーver.", "days": 1, "hot": 0, "warm": 0, "avg_der": 60.2, "max_der": 60.2, "avg_sam": -557, "score": 0.0}, {"name": "バジリスク～甲賀忍法帖～絆2 天膳 BLACK EDITION", "days": 1, "hot": 0, "warm": 0, "avg_der": 78.4, "max_der": 78.4, "avg_sam": -590, "score": 0.0}, {"name": "東京リベンジャーズ", "days": 1, "hot": 0, "warm": 0, "avg_der": 95.7, "max_der": 95.7, "avg_sam": -605, "score": 0.0}, {"name": "新鬼武者3", "days": 1, "hot": 0, "warm": 0, "avg_der": 79.8, "max_der": 79.8, "avg_sam": -1004, "score": 0.0}], "endings": [{"name": "0", "days": 19, "pos": 19, "hot": 5, "avg_der": 101.0, "avg_sam": 110, "pos_rate": 100}, {"name": "4", "days": 19, "pos": 19, "hot": 5, "avg_der": 100.6, "avg_sam": 29, "pos_rate": 100}, {"name": "2", "days": 19, "pos": 19, "hot": 4, "avg_der": 100.4, "avg_sam": 37, "pos_rate": 100}, {"name": "6", "days": 19, "pos": 19, "hot": 4, "avg_der": 100.3, "avg_sam": 71, "pos_rate": 100}, {"name": "7", "days": 19, "pos": 19, "hot": 4, "avg_der": 100.9, "avg_sam": 49, "pos_rate": 100}, {"name": "1", "days": 19, "pos": 19, "hot": 3, "avg_der": 100.1, "avg_sam": 65, "pos_rate": 100}, {"name": "8", "days": 19, "pos": 19, "hot": 3, "avg_der": 100.2, "avg_sam": 43, "pos_rate": 100}, {"name": "5", "days": 19, "pos": 19, "hot": 2, "avg_der": 100.7, "avg_sam": 87, "pos_rate": 100}, {"name": "9", "days": 19, "pos": 19, "hot": 2, "avg_der": 99.4, "avg_sam": -15, "pos_rate": 100}, {"name": "3", "days": 19, "pos": 19, "hot": 1, "avg_der": 99.1, "avg_sam": -56, "pos_rate": 100}, {"name": "ゾロ目(末尾)", "days": 19, "pos": 19, "hot": 1, "avg_der": 99.0, "avg_sam": -68, "pos_rate": 100}]}, "2026-05": {"days": 31, "machines": [{"name": "スマスロ マギアレコード 魔法少女まどか☆マギカ外伝", "days": 31, "hot": 13, "warm": 17, "avg_der": 103.8, "max_der": 153.0, "avg_sam": 570, "score": 306.7}, {"name": "スマスロバジリスク～甲賀忍法帖～絆2 天膳 BLACK EDITION", "days": 31, "hot": 11, "warm": 14, "avg_der": 101.4, "max_der": 149.5, "avg_sam": 423, "score": 327.9}, {"name": "Lスマスロ北斗の拳", "days": 31, "hot": 9, "warm": 12, "avg_der": 101.2, "max_der": 139.9, "avg_sam": 227, "score": 170.9}, {"name": "L聖闘士星矢 海皇覚醒 CUSTOM EDITION", "days": 31, "hot": 9, "warm": 11, "avg_der": 99.1, "max_der": 144.8, "avg_sam": 415, "score": 252.8}, {"name": "Lパチスロ革命機ヴァルヴレイヴ2", "days": 31, "hot": 8, "warm": 11, "avg_der": 100.9, "max_der": 169.7, "avg_sam": 173, "score": 276.2}, {"name": "A-SLOT+ ディスクアップ ULTRAREMIX", "days": 31, "hot": 8, "warm": 11, "avg_der": 98.0, "max_der": 136.2, "avg_sam": 358, "score": 225.8}, {"name": "スマスロ 甲鉄城のカバネリ 海門決戦", "days": 31, "hot": 7, "warm": 11, "avg_der": 100.6, "max_der": 118.6, "avg_sam": 307, "score": 121.6}, {"name": "スマスロ ゴッドイーター リザレクション", "days": 31, "hot": 7, "warm": 9, "avg_der": 95.9, "max_der": 131.6, "avg_sam": 268, "score": 157.7}, {"name": "アレックス ブライト", "days": 19, "hot": 6, "warm": 9, "avg_der": 101.5, "max_der": 161.9, "avg_sam": 122, "score": 207.0}, {"name": "スマスロ 東京リベンジャーズ", "days": 31, "hot": 6, "warm": 9, "avg_der": 98.6, "max_der": 147.8, "avg_sam": 52, "score": 173.6}, {"name": "スマスロモンキーターンV", "days": 31, "hot": 6, "warm": 9, "avg_der": 102.7, "max_der": 118.0, "avg_sam": 299, "score": 143.0}, {"name": "スマスロ新鬼武者3", "days": 31, "hot": 6, "warm": 8, "avg_der": 91.7, "max_der": 145.7, "avg_sam": 77, "score": 170.2}, {"name": "虚構推理", "days": 31, "hot": 6, "warm": 8, "avg_der": 93.3, "max_der": 139.8, "avg_sam": -159, "score": 144.9}, {"name": "バーニングエクスプレス", "days": 12, "hot": 6, "warm": 6, "avg_der": 114.2, "max_der": 284.3, "avg_sam": 933, "score": 426.6}, {"name": "スマスロ 攻殻機動隊", "days": 31, "hot": 5, "warm": 10, "avg_der": 98.9, "max_der": 116.9, "avg_sam": 149, "score": 127.5}, {"name": "クレアの秘宝伝～はじまりの扉と太陽の石～ボーナストリガーver.", "days": 31, "hot": 5, "warm": 9, "avg_der": 89.4, "max_der": 126.7, "avg_sam": 322, "score": 114.6}, {"name": "スマスロ バイオハザードRE:3", "days": 15, "hot": 5, "warm": 7, "avg_der": 105.8, "max_der": 136.5, "avg_sam": 374, "score": 141.7}, {"name": "Lパチスロ炎炎ノ消防隊2", "days": 31, "hot": 5, "warm": 7, "avg_der": 97.6, "max_der": 149.8, "avg_sam": -120, "score": 118.1}, {"name": "スマスロ ミリオンゴッド-神々の軌跡-", "days": 31, "hot": 5, "warm": 6, "avg_der": 98.2, "max_der": 128.2, "avg_sam": -164, "score": 102.5}, {"name": "A‐SLOT+ 異世界かるてっと", "days": 31, "hot": 4, "warm": 9, "avg_der": 98.6, "max_der": 154.6, "avg_sam": 180, "score": 152.6}, {"name": "スマスロ北斗の拳 転生の章2", "days": 31, "hot": 4, "warm": 9, "avg_der": 101.2, "max_der": 133.1, "avg_sam": 139, "score": 143.7}, {"name": "スマスロ化物語", "days": 31, "hot": 4, "warm": 8, "avg_der": 97.9, "max_der": 117.7, "avg_sam": 78, "score": 92.7}, {"name": "機動戦士ガンダムユニコーン 覚醒DRIVE", "days": 19, "hot": 4, "warm": 6, "avg_der": 88.1, "max_der": 122.3, "avg_sam": -90, "score": 84.4}, {"name": "Lパチスロ かぐや様は告らせたい", "days": 19, "hot": 4, "warm": 5, "avg_der": 91.6, "max_der": 125.9, "avg_sam": 188, "score": 93.7}, {"name": "スマスロ スーパーブラックジャック", "days": 12, "hot": 4, "warm": 4, "avg_der": 94.6, "max_der": 121.0, "avg_sam": 102, "score": 62.4}, {"name": "スマスロ ハナビ", "days": 31, "hot": 3, "warm": 8, "avg_der": 96.8, "max_der": 119.4, "avg_sam": 233, "score": 89.6}, {"name": "スマスロ ビッグドリーム THE GOLDEN PUSHER", "days": 21, "hot": 3, "warm": 5, "avg_der": 91.3, "max_der": 130.6, "avg_sam": -471, "score": 82.2}, {"name": "スマート沖スロ ニューキングハナハナV", "days": 12, "hot": 3, "warm": 4, "avg_der": 97.2, "max_der": 114.4, "avg_sam": 292, "score": 53.9}, {"name": "ToLOVEるダークネス TRANCE ver.8.7", "days": 12, "hot": 3, "warm": 4, "avg_der": 96.5, "max_der": 114.2, "avg_sam": -148, "score": 42.6}, {"name": "Lパチスロうみねこのなく頃に2", "days": 31, "hot": 2, "warm": 6, "avg_der": 96.9, "max_der": 131.6, "avg_sam": -52, "score": 91.9}, {"name": "真打 吉宗", "days": 31, "hot": 2, "warm": 5, "avg_der": 92.3, "max_der": 132.9, "avg_sam": -740, "score": 76.3}, {"name": "ジャグラーガールズSS", "days": 31, "hot": 2, "warm": 4, "avg_der": 100.4, "max_der": 111.2, "avg_sam": 254, "score": 72.4}, {"name": "バイオハザード RE:3", "days": 6, "hot": 2, "warm": 4, "avg_der": 102.3, "max_der": 134.1, "avg_sam": 650, "score": 64.1}, {"name": "吉宗", "days": 19, "hot": 2, "warm": 3, "avg_der": 83.7, "max_der": 134.2, "avg_sam": -292, "score": 66.0}, {"name": "ヨルムンガンド", "days": 16, "hot": 2, "warm": 3, "avg_der": 94.7, "max_der": 130.8, "avg_sam": 54, "score": 55.6}, {"name": "Lアズールレーン THE ANIMATION", "days": 12, "hot": 2, "warm": 2, "avg_der": 87.4, "max_der": 125.4, "avg_sam": -247, "score": 42.6}, {"name": "L東京喰種", "days": 31, "hot": 1, "warm": 9, "avg_der": 100.6, "max_der": 116.5, "avg_sam": 127, "score": 106.8}, {"name": "ウルトラミラクルジャグラー", "days": 31, "hot": 1, "warm": 9, "avg_der": 101.7, "max_der": 110.1, "avg_sam": 290, "score": 91.7}, {"name": "ミスタージャグラー", "days": 31, "hot": 1, "warm": 4, "avg_der": 99.5, "max_der": 112.4, "avg_sam": 165, "score": 56.8}, {"name": "スマスロヨルムンガンド", "days": 15, "hot": 1, "warm": 3, "avg_der": 94.5, "max_der": 135.3, "avg_sam": -187, "score": 54.4}, {"name": "スーパーリオエース2", "days": 6, "hot": 1, "warm": 3, "avg_der": 99.0, "max_der": 119.9, "avg_sam": -159, "score": 34.5}, {"name": "L 真・一騎当千", "days": 12, "hot": 1, "warm": 2, "avg_der": 90.0, "max_der": 125.2, "avg_sam": -468, "score": 37.3}, {"name": "スマート沖スロ ドラゴンハナハナ～閃光～", "days": 12, "hot": 1, "warm": 2, "avg_der": 96.8, "max_der": 112.4, "avg_sam": 206, "score": 24.6}, {"name": "Lパチスロからくりサーカス", "days": 10, "hot": 1, "warm": 2, "avg_der": 90.7, "max_der": 110.6, "avg_sam": -510, "score": 20.1}, {"name": "ハッピージャグラーＶＩＩＩ", "days": 31, "hot": 0, "warm": 9, "avg_der": 100.4, "max_der": 109.5, "avg_sam": 369, "score": 92.4}, {"name": "スマスロ スーパーリオエース2", "days": 15, "hot": 0, "warm": 2, "avg_der": 98.4, "max_der": 108.1, "avg_sam": -327, "score": 26.5}, {"name": "マイジャグラーV", "days": 31, "hot": 0, "warm": 1, "avg_der": 100.8, "max_der": 105.1, "avg_sam": 153, "score": 49.3}, {"name": "ネオアイムジャグラーEX", "days": 31, "hot": 0, "warm": 1, "avg_der": 100.9, "max_der": 105.6, "avg_sam": 102, "score": 48.7}, {"name": "ゴーゴージャグラー３", "days": 31, "hot": 0, "warm": 1, "avg_der": 100.2, "max_der": 108.5, "avg_sam": 104, "score": 47.7}, {"name": "ファンキージャグラー２ＫＴ", "days": 31, "hot": 0, "warm": 1, "avg_der": 100.8, "max_der": 105.4, "avg_sam": 96, "score": 43.1}], "endings": [{"name": "0", "days": 31, "pos": 31, "hot": 10, "avg_der": 102.4, "avg_sam": 237, "pos_rate": 100}, {"name": "9", "days": 31, "pos": 31, "hot": 10, "avg_der": 102.0, "avg_sam": 208, "pos_rate": 100}, {"name": "7", "days": 31, "pos": 31, "hot": 8, "avg_der": 102.3, "avg_sam": 241, "pos_rate": 100}, {"name": "ゾロ目(末尾)", "days": 31, "pos": 31, "hot": 8, "avg_der": 101.1, "avg_sam": 107, "pos_rate": 100}, {"name": "2", "days": 31, "pos": 31, "hot": 7, "avg_der": 100.2, "avg_sam": 80, "pos_rate": 100}, {"name": "3", "days": 31, "pos": 31, "hot": 7, "avg_der": 101.9, "avg_sam": 208, "pos_rate": 100}, {"name": "1", "days": 31, "pos": 31, "hot": 5, "avg_der": 99.6, "avg_sam": -9, "pos_rate": 100}, {"name": "6", "days": 31, "pos": 31, "hot": 5, "avg_der": 100.0, "avg_sam": 16, "pos_rate": 100}, {"name": "8", "days": 31, "pos": 31, "hot": 5, "avg_der": 100.5, "avg_sam": 67, "pos_rate": 100}, {"name": "5", "days": 31, "pos": 31, "hot": 4, "avg_der": 100.0, "avg_sam": 27, "pos_rate": 100}, {"name": "4", "days": 31, "pos": 31, "hot": 2, "avg_der": 99.9, "avg_sam": -38, "pos_rate": 100}]}, "2026-04": {"days": 9, "machines": [{"name": "Lパチスロ革命機ヴァルヴレイヴ2", "days": 9, "hot": 5, "warm": 6, "avg_der": 111.1, "max_der": 137.5, "avg_sam": 739, "score": 117.5}, {"name": "スマスロ ゴッドイーター リザレクション", "days": 9, "hot": 4, "warm": 6, "avg_der": 107.8, "max_der": 123.0, "avg_sam": 1203, "score": 82.0}, {"name": "スマスロ北斗の拳 転生の章2", "days": 9, "hot": 4, "warm": 6, "avg_der": 105.9, "max_der": 118.3, "avg_sam": 906, "score": 74.4}, {"name": "アレックス ブライト", "days": 9, "hot": 3, "warm": 6, "avg_der": 102.7, "max_der": 121.7, "avg_sam": 976, "score": 75.4}, {"name": "スマスロ マギアレコード 魔法少女まどか☆マギカ外伝", "days": 9, "hot": 3, "warm": 5, "avg_der": 103.9, "max_der": 119.1, "avg_sam": 550, "score": 70.0}, {"name": "スマスロ 攻殻機動隊", "days": 9, "hot": 3, "warm": 4, "avg_der": 104.4, "max_der": 132.7, "avg_sam": 1121, "score": 90.7}, {"name": "スマスロバジリスク～甲賀忍法帖～絆2 天膳 BLACK EDITION", "days": 9, "hot": 3, "warm": 4, "avg_der": 106.1, "max_der": 125.0, "avg_sam": 727, "score": 74.0}, {"name": "A-SLOT+ ディスクアップ ULTRAREMIX", "days": 9, "hot": 3, "warm": 4, "avg_der": 100.1, "max_der": 122.8, "avg_sam": 518, "score": 66.4}, {"name": "吉宗", "days": 9, "hot": 3, "warm": 3, "avg_der": 93.1, "max_der": 130.7, "avg_sam": -65, "score": 75.7}, {"name": "ミスタージャグラー", "days": 9, "hot": 2, "warm": 5, "avg_der": 104.9, "max_der": 112.2, "avg_sam": 856, "score": 50.1}, {"name": "Lパチスロ炎炎ノ消防隊2", "days": 9, "hot": 2, "warm": 4, "avg_der": 103.8, "max_der": 120.4, "avg_sam": 914, "score": 46.4}, {"name": "真打 吉宗", "days": 9, "hot": 2, "warm": 4, "avg_der": 100.9, "max_der": 115.8, "avg_sam": 226, "score": 45.1}, {"name": "Lパチスロうみねこのなく頃に2", "days": 9, "hot": 2, "warm": 4, "avg_der": 104.2, "max_der": 115.5, "avg_sam": 550, "score": 44.5}, {"name": "スマスロ化物語", "days": 9, "hot": 2, "warm": 3, "avg_der": 102.6, "max_der": 134.4, "avg_sam": 86, "score": 63.6}, {"name": "スマスロ 東京リベンジャーズ", "days": 9, "hot": 2, "warm": 3, "avg_der": 100.5, "max_der": 117.7, "avg_sam": 585, "score": 46.8}, {"name": "ヨルムンガンド", "days": 9, "hot": 2, "warm": 3, "avg_der": 102.3, "max_der": 122.2, "avg_sam": 231, "score": 43.6}, {"name": "スマスロモンキーターンV", "days": 9, "hot": 2, "warm": 3, "avg_der": 102.1, "max_der": 123.0, "avg_sam": 459, "score": 42.8}, {"name": "スマスロ新鬼武者3", "days": 9, "hot": 2, "warm": 2, "avg_der": 106.2, "max_der": 190.1, "avg_sam": -100, "score": 102.5}, {"name": "L聖闘士星矢 海皇覚醒 CUSTOM EDITION", "days": 9, "hot": 2, "warm": 2, "avg_der": 97.3, "max_der": 129.5, "avg_sam": -280, "score": 49.1}, {"name": "Lスマスロ北斗の拳", "days": 9, "hot": 2, "warm": 2, "avg_der": 101.8, "max_der": 121.8, "avg_sam": 281, "score": 42.0}, {"name": "スマスロ ハナビ", "days": 9, "hot": 2, "warm": 2, "avg_der": 98.5, "max_der": 113.7, "avg_sam": 272, "score": 32.3}, {"name": "スマスロ ミリオンゴッド-神々の軌跡-", "days": 9, "hot": 1, "warm": 3, "avg_der": 100.3, "max_der": 114.3, "avg_sam": 36, "score": 38.6}, {"name": "A‐SLOT+ 異世界かるてっと", "days": 9, "hot": 1, "warm": 3, "avg_der": 95.1, "max_der": 111.3, "avg_sam": -150, "score": 26.4}, {"name": "クレアの秘宝伝～はじまりの扉と太陽の石～ボーナストリガーver.", "days": 9, "hot": 1, "warm": 3, "avg_der": 89.9, "max_der": 110.9, "avg_sam": -96, "score": 23.4}, {"name": "Lパチスロからくりサーカス", "days": 9, "hot": 1, "warm": 2, "avg_der": 94.1, "max_der": 123.5, "avg_sam": 188, "score": 36.9}, {"name": "虚構推理", "days": 9, "hot": 1, "warm": 2, "avg_der": 87.3, "max_der": 116.8, "avg_sam": -751, "score": 24.3}, {"name": "Lパチスロ かぐや様は告らせたい", "days": 9, "hot": 1, "warm": 1, "avg_der": 87.5, "max_der": 114.6, "avg_sam": -564, "score": 17.2}, {"name": "L東京喰種", "days": 9, "hot": 0, "warm": 4, "avg_der": 101.7, "max_der": 109.6, "avg_sam": 320, "score": 35.9}, {"name": "機動戦士ガンダムユニコーン 覚醒DRIVE", "days": 9, "hot": 0, "warm": 3, "avg_der": 99.4, "max_der": 108.6, "avg_sam": 339, "score": 32.3}, {"name": "マイジャグラーV", "days": 9, "hot": 0, "warm": 3, "avg_der": 102.4, "max_der": 107.4, "avg_sam": 431, "score": 25.2}, {"name": "ハッピージャグラーＶＩＩＩ", "days": 9, "hot": 0, "warm": 3, "avg_der": 100.7, "max_der": 109.3, "avg_sam": 263, "score": 21.6}, {"name": "ジャグラーガールズSS", "days": 9, "hot": 0, "warm": 2, "avg_der": 101.2, "max_der": 108.4, "avg_sam": 215, "score": 25.0}, {"name": "ネオアイムジャグラーEX", "days": 9, "hot": 0, "warm": 2, "avg_der": 102.4, "max_der": 105.9, "avg_sam": 318, "score": 21.9}, {"name": "ファンキージャグラー２ＫＴ", "days": 9, "hot": 0, "warm": 1, "avg_der": 101.9, "max_der": 107.5, "avg_sam": 260, "score": 22.0}, {"name": "ウルトラミラクルジャグラー", "days": 9, "hot": 0, "warm": 1, "avg_der": 100.5, "max_der": 108.0, "avg_sam": 72, "score": 17.4}, {"name": "スマスロ 甲鉄城のカバネリ 海門決戦", "days": 9, "hot": 0, "warm": 1, "avg_der": 99.4, "max_der": 107.3, "avg_sam": 49, "score": 15.4}, {"name": "ゴーゴージャグラー３", "days": 9, "hot": 0, "warm": 0, "avg_der": 101.1, "max_der": 104.2, "avg_sam": 230, "score": 15.3}], "endings": [{"name": "4", "days": 9, "pos": 9, "hot": 5, "avg_der": 104.9, "avg_sam": 551, "pos_rate": 100}, {"name": "6", "days": 9, "pos": 9, "hot": 5, "avg_der": 104.4, "avg_sam": 559, "pos_rate": 100}, {"name": "7", "days": 9, "pos": 9, "hot": 4, "avg_der": 104.3, "avg_sam": 563, "pos_rate": 100}, {"name": "9", "days": 9, "pos": 9, "hot": 4, "avg_der": 103.4, "avg_sam": 476, "pos_rate": 100}, {"name": "1", "days": 9, "pos": 9, "hot": 3, "avg_der": 100.7, "avg_sam": 88, "pos_rate": 100}, {"name": "2", "days": 9, "pos": 9, "hot": 3, "avg_der": 103.1, "avg_sam": 380, "pos_rate": 100}, {"name": "8", "days": 9, "pos": 9, "hot": 3, "avg_der": 100.5, "avg_sam": 41, "pos_rate": 100}, {"name": "ゾロ目(末尾)", "days": 9, "pos": 9, "hot": 3, "avg_der": 102.4, "avg_sam": 351, "pos_rate": 100}, {"name": "0", "days": 9, "pos": 9, "hot": 2, "avg_der": 102.7, "avg_sam": 485, "pos_rate": 100}, {"name": "5", "days": 9, "pos": 9, "hot": 2, "avg_der": 99.9, "avg_sam": 7, "pos_rate": 100}, {"name": "3", "days": 9, "pos": 9, "hot": 1, "avg_der": 101.4, "avg_sam": 112, "pos_rate": 100}]}}, "prediction": {"latest": "2026-06-19", "weekday_signal": {"0": 1.4, "1": 1.7, "2": 0.5, "3": 1.3, "4": 1.2, "5": 0.5, "6": 0.4}, "weekday_raw": {"0": -3.3, "1": -4.0, "2": -1.3, "3": -3.0, "4": -2.9, "5": -1.1, "6": -1.0}, "dom_signal": {"1": 2.6, "2": 1.4, "3": 2.3, "4": 1.4, "5": 1.1, "6": 0.2, "7": 2.9, "8": 0.5, "9": 3.7, "10": 0.3, "11": 1.9, "12": 1.8, "13": 1.1, "14": 1.0, "15": 3.6, "16": 0.9, "17": -0.4, "18": 0.7, "19": 2.0, "20": 1.3, "21": -2.1, "22": -2.0, "23": 0.5, "24": 0.5, "25": 1.8, "26": 1.1, "27": -0.2, "28": 0.5, "29": 0.8, "30": -0.1, "31": -0.2}, "dom_raw": {"1": -5.7, "2": -3.1, "3": -5.0, "4": -3.0, "5": -2.5, "6": -0.5, "7": -6.3, "8": -1.2, "9": -8.1, "10": -0.8, "11": -4.2, "12": -3.9, "13": -2.3, "14": -2.1, "15": -8.0, "16": -1.9, "17": 1.0, "18": -1.5, "19": -4.4, "20": -2.8, "21": 4.6, "22": 4.4, "23": -1.1, "24": -1.1, "25": -3.9, "26": -2.5, "27": 0.4, "28": -1.1, "29": -1.7, "30": 0.3, "31": 0.4}, "endings": [{"name": "0", "base": 1.89, "bywd": {"0": 4.52, "1": 1.41, "2": 4.57, "3": -1.97, "4": 3.4, "5": -0.07, "6": 1.28}, "pos_rate": 100}, {"name": "1", "base": -0.1, "bywd": {"0": -3.48, "1": 1.37, "2": -0.54, "3": -0.18, "4": 0.85, "5": 2.96, "6": -1.73}, "pos_rate": 100}, {"name": "2", "base": 0.63, "bywd": {"0": -2.6, "1": -1.11, "2": -0.76, "3": 0.05, "4": 3.45, "5": 2.72, "6": 2.54}, "pos_rate": 100}, {"name": "3", "base": 0.74, "bywd": {"0": -0.49, "1": -1.33, "2": 0.96, "3": 1.03, "4": 3.13, "5": 0.55, "6": 0.98}, "pos_rate": 100}, {"name": "4", "base": 0.74, "bywd": {"0": 2.43, "1": -0.45, "2": 3.83, "3": 0.43, "4": -0.06, "5": -2.15, "6": 0.93}, "pos_rate": 100}, {"name": "5", "base": 0.28, "bywd": {"0": 3.41, "1": 1.32, "2": -2.12, "3": 1.97, "4": -2.41, "5": -0.4, "6": 0.56}, "pos_rate": 100}, {"name": "6", "base": 0.72, "bywd": {"0": 3.19, "1": -0.67, "2": 1.24, "3": 0.49, "4": 0.06, "5": 0.19, "6": 0.58}, "pos_rate": 100}, {"name": "7", "base": 2.07, "bywd": {"0": 3.19, "1": 0.96, "2": 2.4, "3": 0.82, "4": 2.11, "5": 1.67, "6": 3.46}, "pos_rate": 100}, {"name": "8", "base": 0.41, "bywd": {"0": 3.29, "1": -2.45, "2": 1.13, "3": 0.98, "4": -0.16, "5": 0.63, "6": -0.6}, "pos_rate": 100}, {"name": "9", "base": 1.19, "bywd": {"0": -0.0, "1": 0.66, "2": 3.0, "3": 3.31, "4": -0.85, "5": 1.71, "6": 0.33}, "pos_rate": 100}, {"name": "ゾロ目(末尾)", "base": 0.5, "bywd": {"0": -0.86, "1": -0.31, "2": -0.23, "3": -0.25, "4": 2.56, "5": 1.1, "6": 1.41}, "pos_rate": 100}], "machines": [{"name": "スマスロ マギアレコード 魔法少女まどか☆マギカ外伝", "base": 0.48, "hot_count": 18, "warm_count": 25, "app": 57, "avg_der": 100.8, "since": 9, "interval": 3}, {"name": "Lパチスロ革命機ヴァルヴレイヴ2", "base": 3.03, "hot_count": 17, "warm_count": 23, "app": 57, "avg_der": 103.0, "since": 2, "interval": 4}, {"name": "Lスマスロ北斗の拳", "base": 2.11, "hot_count": 17, "warm_count": 21, "app": 59, "avg_der": 102.0, "since": 2, "interval": 4}, {"name": "スマスロバジリスク～甲賀忍法帖～絆2 天膳 BLACK EDITION", "base": -3.22, "hot_count": 16, "warm_count": 20, "app": 58, "avg_der": 97.6, "since": 11, "interval": 3}, {"name": "スマスロ 攻殻機動隊", "base": 0.68, "hot_count": 15, "warm_count": 22, "app": 58, "avg_der": 100.7, "since": 4, "interval": 4}, {"name": "A-SLOT+ ディスクアップ ULTRAREMIX", "base": -1.27, "hot_count": 14, "warm_count": 21, "app": 55, "avg_der": 98.5, "since": 2, "interval": 4}, {"name": "スマスロ ゴッドイーター リザレクション", "base": -2.36, "hot_count": 14, "warm_count": 18, "app": 57, "avg_der": 97.9, "since": 7, "interval": 4}, {"name": "L聖闘士星矢 海皇覚醒 CUSTOM EDITION", "base": -6.79, "hot_count": 14, "warm_count": 17, "app": 55, "avg_der": 93.9, "since": 2, "interval": 4}, {"name": "スマスロ北斗の拳 転生の章2", "base": 2.01, "hot_count": 12, "warm_count": 21, "app": 59, "avg_der": 102.1, "since": 1, "interval": 5}, {"name": "スマスロモンキーターンV", "base": 1.39, "hot_count": 12, "warm_count": 19, "app": 59, "avg_der": 101.5, "since": 4, "interval": 5}, {"name": "スマスロ 東京リベンジャーズ", "base": 0.56, "hot_count": 12, "warm_count": 17, "app": 53, "avg_der": 100.6, "since": 2, "interval": 5}, {"name": "スマスロ 甲鉄城のカバネリ 海門決戦", "base": 0.16, "hot_count": 10, "warm_count": 17, "app": 59, "avg_der": 100.2, "since": 0, "interval": 5}, {"name": "クレアの秘宝伝～はじまりの扉と太陽の石～ボーナストリガーver.", "base": -8.64, "hot_count": 10, "warm_count": 16, "app": 53, "avg_der": 91.1, "since": 5, "interval": 6}, {"name": "虚構推理", "base": -5.29, "hot_count": 10, "warm_count": 15, "app": 56, "avg_der": 94.1, "since": 2, "interval": 6}, {"name": "ToLOVEるダークネス TRANCE ver.8.7", "base": 1.16, "hot_count": 10, "warm_count": 13, "app": 30, "avg_der": 101.2, "since": 7, "interval": 2}, {"name": "アレックス ブライト", "base": 1.96, "hot_count": 9, "warm_count": 15, "app": 28, "avg_der": 101.9, "since": 32, "interval": 3}, {"name": "Lパチスロ炎炎ノ消防隊2", "base": -1.98, "hot_count": 9, "warm_count": 14, "app": 58, "avg_der": 98.2, "since": 9, "interval": 6}, {"name": "スマスロ スーパーブラックジャック", "base": -6.59, "hot_count": 9, "warm_count": 12, "app": 30, "avg_der": 93.6, "since": 2, "interval": 3}, {"name": "スマスロ新鬼武者3", "base": -8.89, "hot_count": 9, "warm_count": 11, "app": 56, "avg_der": 91.9, "since": 11, "interval": 6}, {"name": "スマスロ化物語", "base": -2.76, "hot_count": 8, "warm_count": 17, "app": 53, "avg_der": 97.6, "since": 1, "interval": 7}, {"name": "スマスロ バイオハザードRE:3", "base": 1.37, "hot_count": 8, "warm_count": 13, "app": 33, "avg_der": 101.4, "since": 1, "interval": 4}, {"name": "スマスロ ハナビ", "base": -4.01, "hot_count": 7, "warm_count": 15, "app": 59, "avg_der": 96.1, "since": 1, "interval": 9}, {"name": "スマスロ ミリオンゴッド-神々の軌跡-", "base": -6.21, "hot_count": 7, "warm_count": 10, "app": 59, "avg_der": 94.4, "since": 1, "interval": 9}, {"name": "バーニングエクスプレス", "base": -0.98, "hot_count": 7, "warm_count": 7, "app": 19, "avg_der": 99.9, "since": 12, "interval": 3}, {"name": "Lパチスロうみねこのなく頃に2", "base": -2.44, "hot_count": 6, "warm_count": 15, "app": 57, "avg_der": 97.8, "since": 3, "interval": 11}, {"name": "A‐SLOT+ 異世界かるてっと", "base": -3.45, "hot_count": 6, "warm_count": 15, "app": 59, "avg_der": 96.6, "since": 1, "interval": 11}, {"name": "真打 吉宗", "base": -6.66, "hot_count": 6, "warm_count": 14, "app": 58, "avg_der": 93.6, "since": 5, "interval": 10}, {"name": "スマスロヨルムンガンド", "base": -3.4, "hot_count": 6, "warm_count": 9, "app": 32, "avg_der": 96.7, "since": 7, "interval": 4}, {"name": "L 真・一騎当千", "base": -7.75, "hot_count": 6, "warm_count": 7, "app": 30, "avg_der": 92.0, "since": 2, "interval": 4}, {"name": "Lアズールレーン THE ANIMATION", "base": -13.25, "hot_count": 6, "warm_count": 6, "app": 29, "avg_der": 86.7, "since": 0, "interval": 6}, {"name": "スマート沖スロ ドラゴンハナハナ～閃光～", "base": -1.88, "hot_count": 5, "warm_count": 9, "app": 31, "avg_der": 98.1, "since": 3, "interval": 7}, {"name": "スマスロ スーパーリオエース2", "base": 0.34, "hot_count": 5, "warm_count": 8, "app": 33, "avg_der": 100.1, "since": 1, "interval": 2}, {"name": "スマスロ ビッグドリーム THE GOLDEN PUSHER", "base": -15.33, "hot_count": 5, "warm_count": 7, "app": 36, "avg_der": 85.4, "since": 12, "interval": 5}, {"name": "Lパチスロ かぐや様は告らせたい", "base": -10.0, "hot_count": 5, "warm_count": 6, "app": 24, "avg_der": 90.1, "since": 33, "interval": 6}, {"name": "吉宗", "base": -13.36, "hot_count": 5, "warm_count": 6, "app": 28, "avg_der": 86.7, "since": 32, "interval": 6}, {"name": "機動戦士ガンダムユニコーン 覚醒DRIVE", "base": -8.38, "hot_count": 4, "warm_count": 9, "app": 25, "avg_der": 92.2, "since": 34, "interval": 5}, {"name": "スマート沖スロ ニューキングハナハナV", "base": -4.71, "hot_count": 4, "warm_count": 8, "app": 31, "avg_der": 95.3, "since": 14, "interval": 5}, {"name": "ヨルムンガンド", "base": -3.41, "hot_count": 4, "warm_count": 6, "app": 26, "avg_der": 96.9, "since": 34, "interval": 7}, {"name": "L東京喰種", "base": 1.25, "hot_count": 3, "warm_count": 19, "app": 59, "avg_der": 101.2, "since": 0, "interval": 12}, {"name": "ミスタージャグラー", "base": 0.14, "hot_count": 3, "warm_count": 12, "app": 59, "avg_der": 100.3, "since": 32, "interval": 13}, {"name": "ジャグラーガールズSS", "base": 0.37, "hot_count": 2, "warm_count": 8, "app": 58, "avg_der": 100.4, "since": 19, "interval": 18}, {"name": "バイオハザード RE:3", "base": -0.88, "hot_count": 2, "warm_count": 4, "app": 7, "avg_der": 99.7, "since": 36, "interval": 1}, {"name": "Lパチスロからくりサーカス", "base": -7.67, "hot_count": 2, "warm_count": 4, "app": 18, "avg_der": 92.4, "since": 41, "interval": 11}, {"name": "ウルトラミラクルジャグラー", "base": 0.61, "hot_count": 1, "warm_count": 12, "app": 59, "avg_der": 100.7, "since": 36, "interval": null}, {"name": "ネオアイムジャグラーEX", "base": 1.32, "hot_count": 1, "warm_count": 5, "app": 59, "avg_der": 101.3, "since": 0, "interval": null}, {"name": "スーパーリオエース2", "base": -1.33, "hot_count": 1, "warm_count": 3, "app": 7, "avg_der": 98.8, "since": 35, "interval": null}, {"name": "L無職転生～異世界行ったら本気だす～", "base": -7.67, "hot_count": 1, "warm_count": 3, "app": 11, "avg_der": 92.4, "since": 3, "interval": null}, {"name": "ビッグドリーム THE GOLDEN PUSHER", "base": 37.5, "hot_count": 1, "warm_count": 1, "app": 1, "avg_der": 137.5, "since": 8, "interval": null}, {"name": "ドッチ", "base": 20.1, "hot_count": 1, "warm_count": 1, "app": 1, "avg_der": 120.1, "since": 8, "interval": null}, {"name": "化物語", "base": 16.0, "hot_count": 1, "warm_count": 1, "app": 1, "avg_der": 116.0, "since": 8, "interval": null}, {"name": "無職転生 ～異世界行ったら本気だす～", "base": 12.9, "hot_count": 1, "warm_count": 1, "app": 1, "avg_der": 112.9, "since": 8, "interval": null}, {"name": "スーパーブラックジャック", "base": 12.7, "hot_count": 1, "warm_count": 1, "app": 1, "avg_der": 112.7, "since": 8, "interval": null}, {"name": "ハッピージャグラーＶＩＩＩ", "base": 0.61, "hot_count": 0, "warm_count": 17, "app": 58, "avg_der": 100.5, "since": null, "interval": null}, {"name": "マイジャグラーV", "base": 0.92, "hot_count": 0, "warm_count": 7, "app": 59, "avg_der": 101.0, "since": null, "interval": null}, {"name": "ファンキージャグラー２ＫＴ", "base": 0.97, "hot_count": 0, "warm_count": 5, "app": 58, "avg_der": 101.0, "since": null, "interval": null}, {"name": "ゴーゴージャグラー３", "base": 0.32, "hot_count": 0, "warm_count": 2, "app": 59, "avg_der": 100.3, "since": null, "interval": null}, {"name": "スロット ソードアート・オンラインⅡ", "base": -6.02, "hot_count": 0, "warm_count": 2, "app": 11, "avg_der": 94.0, "since": null, "interval": null}, {"name": "ゴッドイーター リザレクション", "base": 9.4, "hot_count": 0, "warm_count": 1, "app": 1, "avg_der": 109.4, "since": null, "interval": null}, {"name": "ソードアート・オンラインII", "base": 9.1, "hot_count": 0, "warm_count": 1, "app": 1, "avg_der": 109.1, "since": null, "interval": null}, {"name": "戦国乙女5 業火を穿つ宿焔の双刃", "base": 8.2, "hot_count": 0, "warm_count": 1, "app": 1, "avg_der": 108.2, "since": null, "interval": null}, {"name": "攻殻機動隊", "base": 7.8, "hot_count": 0, "warm_count": 1, "app": 1, "avg_der": 107.8, "since": null, "interval": null}, {"name": "L戦国乙女5 業火を穿つ宿焔の双刃", "base": -2.45, "hot_count": 0, "warm_count": 1, "app": 11, "avg_der": 97.5, "since": null, "interval": null}, {"name": "アニマルスロット ドッチ", "base": -9.52, "hot_count": 0, "warm_count": 1, "app": 11, "avg_der": 90.6, "since": null, "interval": null}, {"name": "ジャグラーガールズ", "base": 2.7, "hot_count": 0, "warm_count": 0, "app": 1, "avg_der": 102.7, "since": null, "interval": null}, {"name": "スマスロ炎炎ノ消防隊2", "base": -1.1, "hot_count": 0, "warm_count": 0, "app": 1, "avg_der": 98.9, "since": null, "interval": null}, {"name": "アズールレーン THE ANIMATION", "base": -2.7, "hot_count": 0, "warm_count": 0, "app": 1, "avg_der": 97.3, "since": null, "interval": null}, {"name": "ファンキージャグラー2", "base": -2.8, "hot_count": 0, "warm_count": 0, "app": 1, "avg_der": 97.2, "since": null, "interval": null}, {"name": "ハッピージャグラーVIII", "base": -4.1, "hot_count": 0, "warm_count": 0, "app": 1, "avg_der": 95.9, "since": null, "interval": null}, {"name": "東京リベンジャーズ", "base": -4.3, "hot_count": 0, "warm_count": 0, "app": 1, "avg_der": 95.7, "since": null, "interval": null}, {"name": "新鬼武者3", "base": -20.2, "hot_count": 0, "warm_count": 0, "app": 1, "avg_der": 79.8, "since": null, "interval": null}, {"name": "バジリスク～甲賀忍法帖～絆2 天膳 BLACK EDITION", "base": -21.6, "hot_count": 0, "warm_count": 0, "app": 1, "avg_der": 78.4, "since": null, "interval": null}, {"name": "うみねこのなく頃に2", "base": -22.3, "hot_count": 0, "warm_count": 0, "app": 1, "avg_der": 77.7, "since": null, "interval": null}, {"name": "クレアの秘宝伝 ～はじまりの扉と太陽の石～ ボーナストリガーver.", "base": -39.8, "hot_count": 0, "warm_count": 0, "app": 1, "avg_der": 60.2, "since": null, "interval": null}, {"name": "聖闘士星矢 海皇覚醒 CUSTOM EDITION", "base": -47.6, "hot_count": 0, "warm_count": 0, "app": 1, "avg_der": 52.4, "since": null, "interval": null}]}, "accuracy": {"n": 29, "from": "2026-05-22", "to": "2026-06-19", "mach_hot_pred": 17.9, "mach_hot_base": 14.8, "mach_hot_lift": 1.21, "mach_warm_pred": 26.2, "mach_warm_base": 25.2, "mach_warm_lift": 1.04, "best_in_top10": 31, "end_plus_pred": 100.0, "end_plus_base": 100.0, "end_plus_lift": 1.0, "day_corr": -0.48}, "wd_jp": ["月", "火", "水", "木", "金", "土", "日"]};
+const $=s=>document.querySelector(s), wd=DATA.wd_jp;
+const fmtSam=v=>v==null?'-':(v>0?'+':'')+v.toLocaleString();
+function derClass(v){if(v==null)return '';if(v>=DATA.th_hot)return 'b-hot';if(v>=DATA.th_warm)return 'b-warm';return '';}
+function heatColor(t){ // t:0..1
+  if(t==null)return 'var(--cool)';
+  const a=Math.max(0,Math.min(1,t));
+  return `hsl(${210-150*a} ${55+25*a}% ${22+18*a}%)`;
+}
+
+/* ---------- header ---------- */
+$('#store').textContent=DATA.store;
+$('#meta').textContent=`期間 ${DATA.date_range}・${Object.keys(DATA.monthly).length}か月・${DATA.n_rows.toLocaleString()}行／生成 ${DATA.generated}`;
+$('#foot').textContent=`みんレポ非公式集計ツール — ${DATA.store}（${DATA.slug}）`;
+
+/* ---------- tabs ---------- */
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+  t.classList.add('on');
+  $('#view-month').style.display=t.dataset.v==='month'?'':'none';
+  $('#view-predict').style.display=t.dataset.v==='predict'?'':'none';
+});
+
+/* ---------- 月別 ---------- */
+const months=Object.keys(DATA.monthly);
+const msel=$('#monthSel');
+months.forEach(m=>{const o=document.createElement('option');o.value=m;
+  o.textContent=m.replace('-','年')+'月（'+DATA.monthly[m].days+'日）';msel.appendChild(o);});
+msel.onchange=()=>renderMonth(msel.value);
+
+function machRowsHtml(list,start){
+  return list.map((m,i)=>{
+    const hb=m.hot?`<span class="badge b-hot">濃厚${m.hot}</span>`:'';
+    const wb=m.warm&&!m.hot?`<span class="badge b-warm">示唆${m.warm}</span>`:'';
+    return `<tr><td class="rank">${start+i+1}</td>
+      <td class="name">${esc(m.name)}${hb}${wb}</td>
+      <td><span class="pill" style="background:${heatColor(m.avg_der?(m.avg_der-98)/18:null)}">${m.avg_der??'-'}</span></td>
+      <td>${m.max_der??'-'}</td>
+      <td class="posneg ${m.avg_sam>0?'up':'down'}">${fmtSam(m.avg_sam)}</td>
+      <td>${m.days}</td></tr>`;}).join('');
+}
+function renderMonth(ym){
+  const d=DATA.monthly[ym];
+  $('#mlegend').innerHTML=`<span class="badge b-hot">濃厚=出率${DATA.th_hot}%以上の日数</span> `+
+    `<span class="badge b-warm">示唆=${DATA.th_warm}%以上</span>`;
+  const head=`<thead><tr><th></th><th>機種</th><th>平均出率</th><th>最高</th><th>平均差枚</th><th>日数</th></tr></thead>`;
+  const top=d.machines.slice(0,12), rest=d.machines.slice(12);
+  $('#machTbl').innerHTML=head+`<tbody>${machRowsHtml(top,0)}</tbody>`;
+  $('#machMore').innerHTML=rest.length?`<table>${head}<tbody>${machRowsHtml(rest,12)}</tbody></table>`:'<div class="muted">他なし</div>';
+  // endings heatmap
+  const maxpos=Math.max(...d.endings.map(e=>e.pos),1);
+  $('#endHeat').innerHTML=d.endings.map(e=>{
+    const t=e.avg_der?(e.avg_der-98)/16:null;
+    return `<div class="cell" style="background:${heatColor(t)}">
+      <div class="e">${esc(e.name.replace('ゾロ目(末尾)','ゾロ'))}</div>
+      <div class="v">${e.avg_der?e.avg_der+'%':'-'}</div>
+      <div class="v">+${e.pos}/${e.days}日</div>
+      <div class="scorebar" style="width:${Math.round(100*e.pos/maxpos)}%"></div></div>`;}).join('');
+}
+renderMonth(months[0]);
+
+/* ---------- 予想 ---------- */
+const P=DATA.prediction;
+function dateScore(dt){
+  const w=P.weekday_signal[String((dt.getDay()+6)%7)]??1;
+  const dm=P.dom_signal[String(dt.getDate())]??1;
+  return w*dm;
+}
+function renderPredict(dt){
+  const wdi=(dt.getDay()+6)%7;
+  const ds=dateScore(dt);
+  const wsig=P.weekday_signal[String(wdi)]??1, dsig=P.dom_signal[String(dt.getDate())]??1;
+  const tag=ds>=1.15?'<span class="badge b-good">狙い目の日</span>':ds<=0.85?'<span class="badge" style="background:var(--cool)">弱め</span>':'';
+  $('#dateEval').innerHTML=`${wd[wdi]}曜・${dt.getDate()}日 → 日の評価 <b>${ds.toFixed(2)}</b> ${tag}`+
+    `<br><span class="muted">曜日係数 ${wsig.toFixed(2)}／日にち係数 ${dsig.toFixed(2)}（1.0が平均）</span>`;
+  // endings
+  const escored=P.endings.map(e=>{
+    const bywd=e.bywd[String(wdi)]; const base=e.base;
+    const sc=0.55*base+0.45*(bywd==null?base:bywd);
+    return {name:e.name,sc,base,bywd,pos:e.pos_rate};
+  }).sort((a,b)=>b.sc-a.sc);
+  const mx=Math.max(...escored.map(e=>e.sc),0.1), mn=Math.min(...escored.map(e=>e.sc),-0.1);
+  $('#predEnd').innerHTML=escored.slice(0,12).map((e,i)=>{
+    const t=(e.sc-mn)/((mx-mn)||1);
+    return `<div class="cell" style="background:${heatColor(t)}">
+      <div class="e">${esc(e.name.replace('ゾロ目(末尾)','ゾロ'))}</div>
+      <div class="v">${i<3?'★'.repeat(3-i):''}</div>
+      <div class="v">出${e.pos}%</div></div>`;}).join('');
+}
+// 主力機種ランキング（濃厚日数順＝バックテストで効いた指標）。日付に依存しないので一度だけ描画
+function renderMachines(){
+  const ms=P.machines.filter(m=>m.hot_count>0||m.warm_count>0).slice(0,15);
+  $('#predMach').innerHTML=`<thead><tr><th></th><th>機種</th><th>濃厚<br>(${DATA.th_hot}%+)</th><th>高設定<br>(${DATA.th_warm}%+)</th><th>平均<br>出率</th><th>前回<br>から</th></tr></thead><tbody>`+
+    ms.map((m,i)=>{
+      const rate=m.app?Math.round(100*m.hot_count/m.app):0;
+      return `<tr><td class="rank">${i+1}</td><td class="name">${esc(m.name)}</td>
+        <td><span class="pill" style="background:${heatColor(Math.min(m.hot_count/15,1))}">${m.hot_count}日</span></td>
+        <td>${m.warm_count}日</td>
+        <td>${m.avg_der==null?'-':m.avg_der+'%'}</td>
+        <td>${m.since==null?'-':m.since+'日'}</td></tr>`;}).join('')+`</tbody>`;
+}
+renderMachines();
+// 予想精度カード
+(function(){
+  const a=DATA.accuracy;
+  if(!a){$('#acc').innerHTML='<div class="muted">データ期間が短く検証できませんでした。</div>';return;}
+  const row=(label,pred,base,lift,good)=>{
+    const col=lift==null?'var(--mut)':(lift>=1.15?'var(--good)':(lift<=0.9?'var(--hot)':'var(--warm)'));
+    return `<div class="kv"><span>${label}</span><b style="color:${col}">予想${pred==null?'-':pred+'%'} / ランダム${base==null?'-':base+'%'} → ×${lift==null?'-':lift}</b></div>`;};
+  $('#acc').innerHTML=
+    `<div class="muted" style="margin-bottom:6px">${a.from}〜${a.to} の${a.n}日で検証</div>`+
+    row(`🏆 主力機種 上位5に濃厚(${DATA.th_hot}%+)`,a.mach_hot_pred,a.mach_hot_base,a.mach_hot_lift)+
+    row(`主力機種 上位5に高設定(${DATA.th_warm}%+)`,a.mach_warm_pred,a.mach_warm_base,a.mach_warm_lift)+
+    `<div class="kv"><span>その日の最高出率機種を上位10で捕捉</span><b>${a.best_in_top10==null?'-':a.best_in_top10+'%'}</b></div>`+
+    row(`末尾 上位3のプラス的中（参考）`,a.end_plus_pred,a.end_plus_base,a.end_plus_lift)+
+    `<div class="kv"><span>「日の評価」と実際の店の出来の相関</span><b>r=${a.day_corr==null?'-':a.day_corr}</b></div>`;
+})();
+// habits
+(function(){
+  const wsorted=Object.entries(P.weekday_signal).map(([k,v])=>[wd[+k],v]).sort((a,b)=>b[1]-a[1]);
+  const domsorted=Object.entries(P.dom_signal).map(([k,v])=>[+k,v]).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  $('#habits').innerHTML=
+    `<div class="kv"><span>強い曜日</span><b>${wsorted.slice(0,3).map(x=>x[0]+'('+x[1]+')').join('・')}</b></div>`+
+    `<div class="kv"><span>強い日にち</span><b>${domsorted.map(x=>x[0]+'日('+x[1]+')').join('・')}</b></div>`+
+    `<div class="kv"><span>よく設定が入る末尾</span><b>${P.endings.slice().sort((a,b)=>b.base-a.base).slice(0,4).map(e=>e.name.replace('ゾロ目(末尾)','ゾロ')).join('・')}</b></div>`;
+})();
+const di=$('#dateInp');
+const today=new Date();
+di.value=new Date(today.getTime()-today.getTimezoneOffset()*60000).toISOString().slice(0,10);
+di.onchange=()=>{const d=new Date(di.value+'T00:00:00');if(!isNaN(d))renderPredict(d);};
+renderPredict(today);
+
+function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+</script>
+</body>
+</html>
